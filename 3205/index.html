@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Attendance Management System</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta name="theme-color" content="#667eea">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <!-- Login Section -->
+    <div id="loginContainer" class="login-container">
+        <div class="login-form">
+            <h2><i class="fas fa-user-lock"></i> Login to Attendance System</h2>
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" placeholder="Enter your username">
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" placeholder="Enter your password">
+            </div>
+            <div class="form-group">
+                <label for="userRole">Role:</label>
+                <select id="userRole">
+                    <option value="admin">Admin</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="student">Student</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="login()">Login</button>
+            <div class="demo-credentials">
+                <h4>Demo Credentials:</h4>
+                <p><strong>Admin:</strong> admin / admin123</p>
+                <p><strong>Teacher:</strong> teacher / teacher123</p>
+                <p><strong>Student:</strong> student / student123</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer" style="display: none;">
+        <header class="header">
+            <div class="header-left">
+                <h1><i class="fas fa-graduation-cap"></i> Student Attendance System</h1>
+                <div class="user-info">
+                    <span class="user-role" id="currentUserRole"></span>
+                    <span class="user-name" id="currentUserName"></span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                </div>
+                <div class="date-display">
+                    <span id="currentDate"></span>
+                </div>
+                <div class="export-menu">
+                    <button class="btn btn-secondary" onclick="toggleExportMenu()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <div class="export-dropdown" id="exportDropdown">
+                        <button onclick="exportToCSV()"><i class="fas fa-file-csv"></i> Export CSV</button>
+                        <button onclick="exportToPDF()"><i class="fas fa-file-pdf"></i> Export PDF</button>
+                        <button onclick="generateReport()"><i class="fas fa-chart-line"></i> Generate Report</button>
+                    </div>
+                </div>
+                <button class="btn btn-danger logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </header>
+
+        <nav class="navigation" id="navigation">
+            <button class="nav-btn active" id="attendanceTab" onclick="showSection('attendance')">
+                <i class="fas fa-check-circle"></i> Mark Attendance
+            </button>
+            <button class="nav-btn" id="recordsTab" onclick="showSection('records')">
+                <i class="fas fa-chart-bar"></i> View Records
+            </button>
+            <button class="nav-btn" id="studentsTab" onclick="showSection('students')">
+                <i class="fas fa-users"></i> Manage Students
+            </button>
+            <button class="nav-btn" id="analyticsTab" onclick="showSection('analytics')">
+                <i class="fas fa-chart-pie"></i> Analytics
+            </button>
+            <button class="nav-btn" id="settingsTab" onclick="showSection('settings')">
+                <i class="fas fa-cog"></i> Settings
+            </button>
+        </nav>
+
+        <!-- Mark Attendance Section -->
+        <section id="attendance" class="section active">
+            <div class="section-header">
+                <h2><i class="fas fa-check-circle"></i> Mark Daily Attendance</h2>
+                <p>Select students present today</p>
+            </div>
+            
+            <div class="attendance-controls" id="attendanceControls">
+                <div class="search-container">
+                    <input type="text" id="studentSearch" placeholder="Search students..." oninput="filterStudents()">
+                    <i class="fas fa-search"></i>
+                </div>
+                <button class="btn btn-success" onclick="markAllPresent()">
+                    <i class="fas fa-check-double"></i> Mark All Present
+                </button>
+                <button class="btn btn-warning" onclick="clearAttendance()">
+                    <i class="fas fa-times-circle"></i> Clear All
+                </button>
+                <button class="btn btn-info" onclick="bulkMarkAttendance()">
+                    <i class="fas fa-list-check"></i> Bulk Mark
+                </button>
+                <button class="btn btn-primary" onclick="saveAttendance()">
+                    <i class="fas fa-save"></i> Save Attendance
+                </button>
+            </div>
+            <div class="teacher-restriction" id="teacherRestriction" style="display: none;">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Teacher Notice:</strong> You can only modify attendance once per day. Today's attendance has already been saved.
+                </div>
+            </div>
+
+            <div class="student-list" id="studentList">
+                <!-- Students will be populated here -->
+            </div>
+        </section>
+
+        <!-- View Records Section -->
+        <section id="records" class="section">
+            <div class="section-header">
+                <h2><i class="fas fa-chart-bar"></i> Attendance Records</h2>
+                <p>View attendance statistics and history</p>
+            </div>
+
+            <div class="records-controls">
+                <select id="studentFilter" onchange="filterRecords()">
+                    <option value="all">All Students</option>
+                </select>
+                <select id="monthFilter" onchange="filterRecords()">
+                    <option value="current">Current Month</option>
+                    <option value="all">All Time</option>
+                </select>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalDays">0</div>
+                    <div class="stat-label">Total Days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="presentDays">0</div>
+                    <div class="stat-label">Present Days</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="attendanceRate">0%</div>
+                    <div class="stat-label">Attendance Rate</div>
+                </div>
+            </div>
+
+            <div class="records-table-container">
+                <table class="records-table">
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Total Days</th>
+                            <th>Present</th>
+                            <th>Absent</th>
+                            <th>Attendance %</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsTableBody">
+                        <!-- Records will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="calendar-view" id="calendarView">
+                <h3>Attendance Calendar</h3>
+                <div id="attendanceCalendar"></div>
+            </div>
+        </section>
+
+        <!-- Manage Students Section -->
+        <section id="students" class="section">
+            <div class="section-header">
+                <h2><i class="fas fa-users"></i> Manage Students</h2>
+                <p>Add or remove students from the system</p>
+            </div>
+
+            <div class="add-student-form">
+                <div class="form-group">
+                    <input type="text" id="studentName" placeholder="Enter student name" maxlength="50">
+                    <input type="text" id="studentId" placeholder="Enter student ID" maxlength="20">
+                    <button class="btn btn-primary" onclick="addStudent()">
+                        <i class="fas fa-plus"></i> Add Student
+                    </button>
+                </div>
+            </div>
+
+            <div class="students-grid" id="studentsGrid">
+                <!-- Students will be populated here -->
+            </div>
+        </section>
+
+        <!-- Analytics Section -->
+        <section id="analytics" class="section">
+            <div class="section-header">
+                <h2><i class="fas fa-chart-pie"></i> Advanced Analytics</h2>
+                <p>Visual insights and attendance trends</p>
+            </div>
+
+            <div class="analytics-controls">
+                <select id="analyticsTimeframe" onchange="updateAnalytics()">
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="quarter">This Quarter</option>
+                    <option value="year">This Year</option>
+                </select>
+                <select id="analyticsStudent" onchange="updateAnalytics()">
+                    <option value="all">All Students</option>
+                </select>
+            </div>
+
+            <div class="analytics-grid">
+                <div class="chart-container">
+                    <h3>Attendance Trends</h3>
+                    <canvas id="attendanceTrendChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Student Performance</h3>
+                    <canvas id="performanceChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Weekly Patterns</h3>
+                    <canvas id="weeklyPatternChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Attendance Heatmap</h3>
+                    <div id="attendanceHeatmap"></div>
+                </div>
+            </div>
+
+            <div class="insights-panel">
+                <h3>Smart Insights</h3>
+                <div id="insightsContainer">
+                    <!-- AI-generated insights will appear here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings" class="section">
+            <div class="section-header">
+                <h2><i class="fas fa-cog"></i> System Settings</h2>
+                <p>Customize your experience</p>
+            </div>
+
+            <div class="settings-grid">
+                <div class="setting-group">
+                    <h3>Appearance</h3>
+                    <div class="setting-item">
+                        <label>Theme</label>
+                        <select id="themeSelect" onchange="changeTheme()">
+                            <option value="auto">Auto</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label>Color Scheme</label>
+                        <div class="color-picker">
+                            <div class="color-option" data-color="blue" style="background: #667eea"></div>
+                            <div class="color-option" data-color="green" style="background: #48bb78"></div>
+                            <div class="color-option" data-color="purple" style="background: #9f7aea"></div>
+                            <div class="color-option" data-color="red" style="background: #f56565"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Notifications</h3>
+                    <div class="setting-item">
+                        <label>Enable Notifications</label>
+                        <input type="checkbox" id="enableNotifications" onchange="toggleNotifications()">
+                    </div>
+                    <div class="setting-item">
+                        <label>Daily Reminders</label>
+                        <input type="checkbox" id="dailyReminders" onchange="toggleDailyReminders()">
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Data Management</h3>
+                    <div class="setting-item">
+                        <label>Auto-save Interval</label>
+                        <select id="autoSaveInterval" onchange="updateAutoSave()">
+                            <option value="30">30 seconds</option>
+                            <option value="60">1 minute</option>
+                            <option value="300">5 minutes</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <button class="btn btn-warning" onclick="clearAllData()">
+                            <i class="fas fa-trash"></i> Clear All Data
+                        </button>
+                        <button class="btn btn-info" onclick="importData()">
+                            <i class="fas fa-upload"></i> Import Data
+                        </button>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Keyboard Shortcuts</h3>
+                    <div class="shortcuts-list">
+                        <div class="shortcut-item">
+                            <span>Mark All Present</span>
+                            <kbd>Ctrl + A</kbd>
+                        </div>
+                        <div class="shortcut-item">
+                            <span>Save Attendance</span>
+                            <kbd>Ctrl + S</kbd>
+                        </div>
+                        <div class="shortcut-item">
+                            <span>Search Students</span>
+                            <kbd>Ctrl + F</kbd>
+                        </div>
+                        <div class="shortcut-item">
+                            <span>Toggle Theme</span>
+                            <kbd>Ctrl + T</kbd>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bulk Operations Modal -->
+        <div id="bulkModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Bulk Attendance Operations</h3>
+                    <span class="close" onclick="closeBulkModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="bulk-options">
+                        <button class="btn btn-success" onclick="bulkMarkPresent()">
+                            <i class="fas fa-check"></i> Mark Selected Present
+                        </button>
+                        <button class="btn btn-danger" onclick="bulkMarkAbsent()">
+                            <i class="fas fa-times"></i> Mark Selected Absent
+                        </button>
+                    </div>
+                    <div class="student-selection">
+                        <div class="select-all">
+                            <input type="checkbox" id="selectAllStudents" onchange="toggleAllStudents()">
+                            <label for="selectAllStudents">Select All</label>
+                        </div>
+                        <div id="bulkStudentList">
+                            <!-- Students for bulk operations -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success/Error Messages -->
+        <div id="messageContainer" class="message-container"></div>
+        
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="loading-overlay">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading...</p>
+            </div>
+        </div>
+        
+        <!-- Toast Notifications -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <!-- File input for import -->
+    <input type="file" id="fileInput" accept=".json,.csv" style="display: none;" onchange="handleFileImport(event)">
+
+    <script src="script.js"></script>
+</body>
+</html>
